@@ -1,0 +1,27 @@
+/*body{
+	height: 200px;
+	background-color: #0088ce;
+}
+#header h1{
+	text-align: center;
+	color: white;
+	font-size: 100px;
+}*/
+#currentStatusChart {
+	border: 2px dashed black;
+	height: 400px;
+	width: 400px;
+}
+
+path {
+  fill-rule: evenodd;
+  fill: #aaa;
+  fill-opacity: .7;
+  stroke: #666;
+  stroke-width: 5.5px;
+}
+
+.info{
+	fill: teal;
+	font-size: 20px;
+}

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>BMW Hackathon</title>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+		<script src="d3/d3.js"></script>
+		<link rel="stylesheet" href="style.css">
+  </head>
+
+	<body>
+		<div id="header">
+			<h1>BMW Car Visualisation</h1>
+		</div>
+		<div id="currentStatusChart"></div>
+	</body>
+
+	<!-- currentStatusChart -->
+	<script type="text/javascript">
+		var car1 = 'WBY1Z4C53EV273080';
+		var divH = parseInt( d3.select("#currentStatusChart").style("height") );
+	  var divW = parseInt( d3.select("#currentStatusChart").style("width") );
+		
+		var margin = {top: 10, right: 10, bottom: 10, left: 10};
+		var w = divW - margin.left - margin.right;
+			h = divH - margin.top - margin.bottom;
+			smallestDim = Math.min(h, w);
+
+		var fields = [
+			{name: "battery", value: 1, size: 100, units: "%", order: 0},
+			{name: "battery dist", value: 1, size: 81, units: "mi", order: 1}//,
+			//{name: "fuel", value: .1, size: 1.98, units: "gallons", order: 2},
+			//{name: "fuel_distance", value: 1, size: 58, units: "miles", order: 3}
+		];
+
+		var svg = d3.select("#currentStatusChart").append("svg:svg")
+	    .attr("width", w + margin.left + margin.right)
+	    .attr("height", h + margin.top + margin.bottom)
+	  .append("svg:g")
+	    .attr("transform", "translate(" + margin.left + "," +(margin.top + smallestDim/2)+ ")");
+
+
+		//arc start
+		var outerRadiusInit = smallestDim / 2;
+		var arcWidth = 35;
+		var innerRadiusInit = outerRadiusInit - arcWidth;
+
+		var arc = d3.svg.arc()
+	    .innerRadius(function(d) { return innerRadiusInit - d.order * arcWidth ; })
+	    .outerRadius(function(d) { return outerRadiusInit - d.order * arcWidth ; })
+	    .startAngle(Math.PI)
+	    .endAngle(function(d,i) { 
+	      return Math.PI - (d.value / d.size) * Math.PI;
+	    });
+
+		for(var i = 0; i < fields.length; i++)
+			fields[i].previous = fields[i].value;
+
+		var path = svg.selectAll("path")
+		  .data(fields.filter(function(d) { return d.value; }))
+
+		path.enter().append("svg:path")
+	    .attr("transform", function(d, i) { 
+	      return "translate(" + (smallestDim/2) + ",0)"; 
+	    })
+	    .attr("d", arc);
+
+	  var text = svg.selectAll("text")
+	  	.data(fields)
+	  	.enter()
+	  	.append("text")
+
+	  text.text(function(d){
+	  		return d.name + " " + d.value + " " + d.units;
+	  	})
+	  	.attr("class", "info")
+	  	.attr("transform", function(d, i){
+	  		return "translate(10," + (150 + i*30) + ")"
+	  	});
+
+
+	  updateCarStatus();
+	  setInterval(updateCarStatus, 3000);
+
+	  function updateCarStatus(){
+	    $.ajax({
+	      url:"http://api.hackthedrive.com/vehicles/" + car1 + "/battery/"
+	    })
+	    .done(function(data) {
+	      for(var i = 0; i < fields.length; i++)
+	    		fields[i].previous = fields[i].value;
+				for(var i = 0; i < fields.length; i++){
+	      	if(fields[i].name === "battery"){
+	      		fields[i].value = data.remainingPercent;
+	      	}
+	      	if(fields[i].name === "battery dist"){
+	      		fields[i].value = data.remainingRangeMi;
+	      	}
+	      	updateD3();
+	      };
+	    })
+	    .fail(function failureCallback (argument) {
+	      console.log('failureCallback');
+	    });
+
+	    //must reenter d3 related data
+	    function updateD3(){
+	    	var animateTime = 1000;
+	    	console.log("updateD3");
+		    var path = svg.selectAll("path")
+		      .data(fields.filter(function(d) { return d.value; }));
+
+				path.enter().append("svg:path")
+		      .attr("transform", function(d, i) { return "translate(" + h/2 + ",0)"; })
+		    .transition()
+		      .ease("linear")
+		      .duration(animateTime)
+		      .attrTween("d", arcTween);
+
+		    path.transition()
+		      .ease("linear")
+		      .duration(animateTime)
+		      .attrTween("d", arcTween);
+
+		    svg.selectAll("text") //bottom
+					.data(fields)
+					.transition()
+					.duration(animateTime)
+					.ease("linear")
+					.attr("transform", function(d, i){
+			  		return "translate(10," + (150 + i*30) + ")"
+			  	});
+		  }
+		}
+	
+	  //arc end
+	  function arcTween(b) {
+		  var i = d3.interpolate({value: b.previous}, b);
+		  return function(t) {
+		    return arc(i(t));
+		  };
+		}
+	</script>
+
+</html>
