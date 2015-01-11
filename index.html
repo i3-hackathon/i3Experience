@@ -100,9 +100,16 @@
 
 		path.enter().append("svg:path")
 			.attr("fill", function(d){
-				if(d.side === "left")
-					return "rgba(122,181,236,1)";
-				else return "orange";
+				if(d.side === "left"){
+					if(d.value / d.size > .2)
+						return "rgba(122,181,236,1)";
+					else return "red";
+				}
+				else{
+					if(d.value / d.size > .2)
+						return "orange";
+					else return "red";
+				} ;
 			})
 	    .attr("transform", function(d, i) { 
 	    	if(d.side === "left")
@@ -128,6 +135,7 @@
 	  	});
 
 
+	  	//charging status in center of battery meter
 	  	svg.append("text")
 				.attr("class", "chargingStatus")
 				.attr("text-anchor", "middle")
@@ -176,7 +184,8 @@
 		  setInterval(updateCarStatus, refreshTime);
 
 		  function updateCarStatus(){
-		  	$.ajax({
+		  	//Not working for some reason, cors error
+		  	/*$.ajax({
 		      url:"http//api.hackthedrive.com/vehicles/" + car1 + "/location/"
 		    })
 		    .done(function(data) {
@@ -188,7 +197,7 @@
 		    })
 		    .fail(function failureCallback (argument) {
 		      console.log('failureCallback');
-		    });
+		    });*/
 
 		    $.ajax({
 		      url:"http://api.hackthedrive.com/vehicles/" + car1 + "/battery/"
@@ -236,10 +245,9 @@
 		    //must reenter d3 related data
 		    function updateD3(){
 		    	var animateTime = 1000;
-		    	console.log("Real Time Chart");
 
 			    var path = svg.selectAll("path")
-			      .data(fields.filter(function(d) { return d.value; }));
+			      .data(fields.filter(function(d) { return d; }));
 
 			    d3.select('.chargingStatus').html("Charging Status:" + fields[0].chargingStatus);
 
@@ -250,7 +258,21 @@
 			      .duration(animateTime)
 			      .attrTween("d", arcTween);
 
+
 			    path.transition()
+			    	.attr("fill", function(d){
+			      	if(d.side === "left"){
+			      		console.log("inside");//not getting here?? Why
+								if(d.value / d.size > .2)
+									return "rgba(122,181,236,1)";
+								else return "red";
+							}
+							else{
+								if(d.value / d.size > .2)
+									return "orange";
+								else return "red";
+							};
+			      })
 			      .ease("linear")
 			      .duration(animateTime)
 			      .attrTween("d", arcTween);
@@ -277,7 +299,7 @@
 		var divH = parseInt( d3.select("#historyChart").style("height") );
 	  var divW = parseInt( d3.select("#historyChart").style("width") );
 		
-		var margin = {top: 30, right: 10, bottom: 50, left: 10};
+		var margin = {top: 30, right: 30, bottom: 50, left: 30};
 		var w = divW - margin.left - margin.right;
 			h = divH - margin.top - margin.bottom;
 
