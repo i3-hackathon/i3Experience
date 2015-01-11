@@ -15,7 +15,7 @@
 
 	<body>
 		<div id="header">
-			<h1>BMW Car Visualisation</h1>
+			<h1>i3 Insights</h1>
 		</div>
 		<div>
 			<div class="topLayer">
@@ -28,6 +28,8 @@
 				<ul class="nav">
 					<li id="averageDistance"></li>
 					<li id="averageDuration"></li>
+					<li id="mostMiles"></li>
+					<li id="mostTime"></li>
 					<div id="right">
 						<li id="btnWeekDay">Week Day</li>
 						<li id="btnWeekend">Weekend</li>
@@ -50,8 +52,8 @@
 			smallestDim = Math.min(h, w);
 
 		var fields = [
-			{side: "left", name: "battery", value: 5, size: 100, units: "%", order: 1},
-			{side: "left", name: "battery dist", value: 5, size: 81, units: "mi", order: 0},
+			{side: "left", name: "battery", value: 5, size: 100, units: "%", order: 1, chargingStatus: "unknown"},
+			{side: "left", name: "dist remain (battery)", value: 5, size: 81, units: "mi", order: 0},
 			{side: "right", name: "fuel", value: .1, size: 1.98, units: "gallons", order: 1},
 			{side: "right", name: "dist remain", value: 2, size: 81, units: "miles", order: 0}
 		];
@@ -62,7 +64,6 @@
 	    .attr("height", h + margin.top + margin.bottom)
 	  .append("svg:g")
 	    .attr("transform", "translate(" + margin.left + "," +(margin.top + smallestDim/2)+ ")");
-
 
 		//arc start
 		var outerRadiusInit = smallestDim / 2;
@@ -88,7 +89,7 @@
 		path.enter().append("svg:path")
 			.attr("fill", function(d){
 				if(d.side === "left")
-					return "teal";
+					return "rgba(122,181,236,1)";
 				else return "orange";
 			})
 	    .attr("transform", function(d, i) { 
@@ -100,7 +101,7 @@
 
 
 	  //text adding
-	  var text = svg.selectAll("text")
+	  var text = svg.selectAll("text.info")
 	  	.data(fields)
 	  	.enter()
 	  	.append("text")
@@ -114,8 +115,17 @@
     		else return "translate(" + (w - smallestDim) + "," + (150 +Math.abs(d.order-1)*30) + ")"; 
 	  	});
 
+
+	  	svg.append("text")
+				.attr("class", "chargingStatus")
+				.attr("text-anchor", "middle")
+				.attr("transform","translate(" + smallestDim / 2 + ",0)")
+				.text("Charging Status:" + fields[0].chargingStatus);
+
+
+
 		  updateCarStatus();
-		  setInterval(updateCarStatus, 3000);
+		  //setInterval(updateCarStatus, 3000);
 
 		  function updateCarStatus(){
 		    $.ajax({
@@ -127,8 +137,10 @@
 					for(var i = 0; i < fields.length; i++){
 		      	if(fields[i].name === "battery"){
 		      		fields[i].value = data.remainingPercent;
+		      		fields[i].chargingStatus = data.chargingStatus;
+		      		console.log(fields[i].chargingStatus);
 		      	}
-		      	if(fields[i].name === "battery dist"){
+		      	if(fields[i].name === "dist remain (battery)"){
 		      		fields[i].value = data.remainingRangeMi;
 		      	}
 		      };
@@ -168,6 +180,8 @@
 			    var path = svg.selectAll("path")
 			      .data(fields.filter(function(d) { return d.value; }));
 
+			    d3.select('.chargingStatus').html("Charging Status:" + fields[0].chargingStatus);
+
 					path.enter().append("svg:path")
 			      .attr("transform", function(d, i) { return "translate(" + smallestDim/2 + ",0)"; })
 			    .transition()
@@ -202,7 +216,7 @@
 		var divH = parseInt( d3.select("#historyChart").style("height") );
 	  var divW = parseInt( d3.select("#historyChart").style("width") );
 		
-		var margin = {top: 10, right: 10, bottom: 40, left: 10};
+		var margin = {top: 20, right: 10, bottom: 40, left: 10};
 		var w = divW - margin.left - margin.right;
 			h = divH - margin.top - margin.bottom;
 
@@ -282,8 +296,8 @@
 				div.transition()        
           .duration(200)      
           .style("opacity", .95);      
-        div.html("Distance: " + d.distance + "<br/>" 
-        	+ "Duration: " + d.duration + "<br>"
+        div.html("Distance: " + d.distance + " mi<br/>" 
+        	+ "Duration: " + d.duration + " min<br>"
         	+ "Date: " + formatTime(new Date(Date.parse(d.date))))//parse date  
           .style("left", (d3.event.pageX) + "px")     
           .style("top", (d3.event.pageY - 28) + "px");    
@@ -303,7 +317,7 @@
 				.attr({
 					"class": "barLabels",
 					x: function(d,i) { return xTimeScale(new Date(Date.parse(d.date))) + d.duration/2 - (this.getBBox().width / 2)},
-					y: function(d) { return h - yScale(d.distance) + 14; },
+					y: function(d) { return h - yScale(d.distance) - 2; },
 				});
 
 			//chart title
@@ -312,6 +326,7 @@
 				.attr("x", w/2)
 				.attr("y", "12px")
 				.attr("text-anchor", "middle")
+				.attr("fill", "white")
 				.attr("font-size", "30px");
 
 			//x axis
@@ -320,9 +335,79 @@
 		    .attr('transform', 'translate(0, ' + (h) + ')')
 		    .call(xAxis)
 
-		  d3.select("#averageDistance").html("Average Distance: " + averageDistance());
-		  d3.select("#averageDuration").html("Average Duration: " + averageDuration());
+			upDateInsights();
 
+
+		  function upDateInsights(){
+		  	d3.select("#averageDistance").html("Average Distance: " + averageDistance());
+		  	d3.select("#averageDuration").html("Average Duration: " + averageDuration());
+		  	d3.select("#mostMiles").html("Most Miles: " + mostMiles());
+		  	d3.select("#mostTime").html("Most Time: " + mostTime());
+
+
+		  	//data calculating function
+			  function averageDistance(){
+			  	var total = 0;
+			  	for(i = 0; i < data.length; i++){
+			  		total += data[i].distance;
+			  	}
+			  	return total / data.length + " mi" ;
+			  }
+			  function averageDuration(){
+			  	var total = 0;
+			  	for(i = 0; i < data.length; i++){
+			  		total += data[i].duration;
+			  	}
+			  	return total / data.length + " min";
+			  }
+			  function mostMiles(){
+			  	var most = 0;
+			  	var currentDate = "sat";
+			  	var tempSum = 0;
+			  	var mostOnDay = "sat";
+			  	for(var i = 0; i < data.length; i++){
+			  		var date = new Date(Date.parse(data[i].date))
+			  		var formatTime = d3.time.format("%a");
+			  		var formatedDate = formatTime(date).toLowerCase();
+			  		if(formatedDate === currentDate){
+			  			tempSum+=data[i].distance;
+			  			if(tempSum > most){
+			  				most = tempSum;
+			  				mostOnDay = formatedDate;
+			  			}
+			  		}
+			  		if(formatedDate !== currentDate){
+			  			tempSum = 0;
+			  			currentDate = formatedDate;
+			  		}
+			  	}
+			  	return most + " mi on " + mostOnDay;
+			  }
+			  function mostTime(){
+			  	var most = 0;
+			  	var currentDate = "sat";
+			  	var tempSum = 0;
+			  	var mostOnDay = "sat";
+			  	for(var i = 0; i < data.length; i++){
+			  		var date = new Date(Date.parse(data[i].date))
+			  		var formatTime = d3.time.format("%a");
+			  		var formatedDate = formatTime(date).toLowerCase();
+			  		if(formatedDate === currentDate){
+			  			tempSum+=data[i].duration;
+			  			console.log(most + " : " + mostOnDay + " > " + tempSum + " : " + data[i].duration);
+			  			if(tempSum > most){
+			  				most = tempSum;
+			  				mostOnDay = formatedDate;
+			  			}
+			  		}
+			  		if(formatedDate !== currentDate){
+			  			tempSum = 0;
+			  			currentDate = formatedDate;
+			  		}
+			  	}
+			  	return most + " min on " + mostOnDay;
+			  }
+		  }
 
 		  //btns to change state
 		  d3.select("#btnWeekDay").on("click", function(){
@@ -342,9 +427,7 @@
 		  	}
 
 		  	if(done){
-		  		console.log(data.length);
-		  		d3.select("#averageDistance").html("Average Distance: " + averageDistance());
-		  		d3.select("#averageDuration").html("Average Duration: " + averageDuration());
+		  		upDateInsights()
 		  	}
 		  	reArrange();
 		  });
@@ -366,18 +449,19 @@
 		  	}
 
 		  	if(done){
-		  		console.log(data.length);
-		  		d3.select("#averageDistance").html("Average Distance: " + averageDistance());
-		  		d3.select("#averageDuration").html("Average Duration: " + averageDuration());
+		  		upDateInsights()
 		  	}
 		  	reArrange();
 		  });
 		  d3.select("#btnWholeWeek").on("click", function(){
-		  	data = ORIGINAL_DATA.slice();
+		  	//reload page instead of fix data
+		  	javascript:history.go(0);
+
+		  	/*data = ORIGINAL_DATA.slice();
 	  		d3.select("#averageDistance").html("Average Distance: " + averageDistance());
 	  		d3.select("#averageDuration").html("Average Duration: " + averageDuration());
-	  		//do a brute reset of everything
-	  		reArrange();
+	  		//do a brute reset of everything?
+	  		reArrange();*/
 		  })
 
 
@@ -417,7 +501,7 @@
 					.attr({
 						"class": "barLabels",
 						x: function(d,i) { return xTimeScale(new Date(Date.parse(d.date))) + d.duration/2 - (this.getBBox().width / 2)},
-						y: function(d) { return h - yScale(d.distance) + 14; },
+						y: function(d) { return h - yScale(d.distance) -2; },
 					});
 				text.exit()
 					.remove();
@@ -428,22 +512,6 @@
 			    .duration(1000)
 			    .call(xAxis);
 			}
-
-		  //data calculating function
-		  function averageDistance(){
-		  	var total = 0;
-		  	for(i = 0; i < data.length; i++){
-		  		total += data[i].distance;
-		  	}
-		  	return total / data.length + " mi" ;
-		  }
-		  function averageDuration(){
-		  	var total = 0;
-		  	for(i = 0; i < data.length; i++){
-		  		total += data[i].duration;
-		  	}
-		  	return total / data.length + " min";
-		  }
 
 	</script>
 

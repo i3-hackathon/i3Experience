@@ -1,21 +1,33 @@
-/*body{
-	height: 200px;
-	background-color: aqua;
-	-webkit-filter: blur(4px) opacity(0.3);
+body{
+	height: 100%;
+	/*background-color: rgba(20,22,24,.9);*/
+	/*-webkit-filter: blur(4px) opacity(0.3);*/
+	background: -webkit-linear-gradient(rgba(0,0,0,1), rgba(48,72,94,1));
+	background-repeat: no-repeat;
+	color:white;
+	font-family: "Helvetica";
+	color: white;
 }
+
 #header h1{
+	border: 2px solid #C0C0C0;
 	text-align: center;
 	color: white;
 	font-size: 100px;
-}*/
+	background-color: rgba(63, 181, 231, 0.3);
+	margin: 30px 72px 30px 72px;
+	border-radius: 20px;
+}
 
 .topLayer #currentStatusChart {
-	border: 2px dashed black;
+	border: 2px solid #C0C0C0;
 	height: 400px;
-	width: 100%;
-	float:left;
-	align: center;
+	width: 90%;
+	margin: 20px auto;
+	background-color: rgba(201,225,247,.5);
+	border-radius: 200px;
 }
+
 
 #currentStatusChart path {
   fill-rule: evenodd;
@@ -24,25 +36,28 @@
   stroke-width: 5.5px;
 }
 
-.info{
-	fill: teal;
+.info, .chargingStatus{
+	fill: white;
 	font-size: 20px;
 }
 
 #historyChart {
-	border: 2px dashed black;
-	height: 400px;
-	width: 100%;
+	border: 2px solid #C0C0C0;
+	height: 500px;
+	width: 90%;
+	margin: 0 auto;
+	background-color: rgba(110,126,142,.5);
+	border-radius: 20px;
 }
 
 .barLabels {
-	fill: black;
+	fill: white;
 }
 
 .axis path,
 .axis line {
   fill: none;
-  stroke: black;
+  stroke: white;
   shape-rendering: crispEdges;
 }
 
@@ -58,7 +73,7 @@ div.tooltip {
   border: 0px;      
   border-radius: 8px;           
   pointer-events: none; 
-  color: black;        
+  color: white;        
 }
 
 #historyChart .nav {
@@ -78,6 +93,5 @@ div.tooltip {
 	background-color: maroon;
 	color: white;
 	border-radius: 5px;
-	margin-left: 5px;
-	margin-right: 5px;
+	margin: 10px 10px 10px 10px;
 }
