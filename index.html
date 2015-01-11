@@ -238,7 +238,7 @@
 	  	.attr("transform", function(d, i){
 	  		if(d.side === "left")
     			return "translate(" + (smallestDim/2 + 10) + "," + (150 + Math.abs(d.order-1)*30) + ")";
-    		else return "translate(" + (w - smallestDim) + "," + (150 +Math.abs(d.order-1)*30) + ")"; 
+    		else return "translate(" + (w - smallestDim + 20) + "," + (150 +Math.abs(d.order-1)*30) + ")"; 
 	  	});
 
 
@@ -291,6 +291,7 @@
 		  setInterval(updateCarStatus, refreshTime);
 
 		  function updateCarStatus(){
+		  	console.log("updating real time chart");
 		  	//Not working for some reason, cors error
 		  	/*$.ajax({
 		      url:"http//api.hackthedrive.com/vehicles/" + car1 + "/location/"

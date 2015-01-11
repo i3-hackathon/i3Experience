@@ -33,5 +33,6 @@ problem:
 2. Cannot appreciate car away from car
 
 demo:
-1. Standard real time appreciation of battery and fuel level
-using sample data;
+1. Standard real time appreciation of battery and fuel level via BMW Car API
+2. create bar chart historical trips data -> log data -> using mock data - > larger range;
+	-> query it, learn from it, discover patterns
