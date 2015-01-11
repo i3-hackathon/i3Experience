@@ -3,3 +3,35 @@ BMW Talk
 BMW i3 is a beautiful car that wants to always be looked at,
 but unfortunately has problems fitting in the living room unlike here
 -> app -> always view car
+
+
+
+QUESTIONS:
+ Value: does the app create value? How does the app improve the urban driving experience? How important are the addressed needs? 
+->forge intimate connection between driver and car
+-> enlightened driving
+
+ Innovation: is it an amazing new use case? User experience: does the app have a gorgeous user interface? Is it easy to use or to interact during the drive? 
+
+
+ Market: which/how many people who could be delighted with the solution? 
+
+
+ Integration: does the app make great use of BMW’s data or other relevant data (public data, use of external API’s etc.) 
+-> BMW Car API
+-> D3.js
+
+
+ Quality of presentation: Make sure that the judges understand quickly your app, and what need it solves for whom and how
+
+
+
+-> who you are, problem solving, showing/demo
+
+problem: 
+1. no easy way to access historic trip data, there are logging apps, but nothing automatic + offers insight, and dont connect to car directly -> burn phone batteries
+2. Cannot appreciate car away from car
+
+demo:
+1. Standard real time appreciation of battery and fuel level
+using sample data;

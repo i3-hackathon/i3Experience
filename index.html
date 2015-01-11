@@ -1,5 +1,6 @@
 <!--
 	Note need to press buttons several times before it works
+	What other features should add?
 
 -->
 
@@ -15,7 +16,7 @@
 
 	<body>
 		<div id="header">
-			<h1>i3 Insights</h1>
+			<p>i3 Experience</p>
 		</div>
 		<div>
 			<div class="topLayer">
@@ -53,10 +54,21 @@
 
 		var fields = [
 			{side: "left", name: "battery", value: 5, size: 100, units: "%", order: 1, chargingStatus: "unknown"},
-			{side: "left", name: "dist remain (battery)", value: 5, size: 81, units: "mi", order: 0},
+			{side: "left", name: "dist remain (battery)", value: 5, size: 86, units: "mi", order: 0},
 			{side: "right", name: "fuel", value: .1, size: 1.98, units: "gallons", order: 1},
-			{side: "right", name: "dist remain", value: 2, size: 81, units: "miles", order: 0}
+			{side: "right", name: "dist remain", value: 2, size: 81, units: "mi", order: 0}
 		];
+
+		/*var vehicleDescription = {
+			color: "",
+			colorAccent: "",
+			countryOfSale: "",
+			make: "",
+			hasRangeExtender: "",
+			year: "",
+			model: "",
+			vin: ""
+		};*/
 
 
 		var svg = d3.select("#currentStatusChart").append("svg:svg")
@@ -123,11 +135,61 @@
 				.text("Charging Status:" + fields[0].chargingStatus);
 
 
+			/*getVehicleDescription();
+			function getVehicleDescription(){
+				$.ajax({
+		      url:"http://api.hackthedrive.com/vehicles/" + car1
+		    })
+		    .done(function(data) {
+					vehicleDescription.color = data.color;
+					vehicleDescription.colorAccent = data.colorAccent;
+					vehicleDescription.countryOfSale = data.country;
+					vehicleDescription.make = data.make;
+					vehicleDescription.hasRangeExtender = data.hasRangeExtender;
+					vehicleDescription.year = data.year;
+					vehicleDescription.model = data.model;
+					vehicleDescription.vin = data.vin;
+					console.log(vehicleDescription);
 
+					//should fix if want to impliment, + is necessary to impliment?
+					svg.append("text")
+						.data(vehicleDescription)
+						.attr("text-anchor", "middle")
+						.attr("class", "center")
+						.attr("transform", function(d, i){
+							return "translate(" + w/2 + "," + (100 + i*10) + ")";
+							console.log("transition");
+						})
+						.text(function(d){ return vehicleDescription[d] });
+		    })
+		    .fail(function failureCallback (argument) {
+		      console.log('failureCallback');
+		    });
+			}*/
+
+
+			//getting information
+			var currentLat = "";
+		  var currentLong = "";
+			var refreshTime = 1000 * 20;
 		  updateCarStatus();
-		  //setInterval(updateCarStatus, 3000);
+		  setInterval(updateCarStatus, refreshTime);
 
 		  function updateCarStatus(){
+		  	$.ajax({
+		      url:"http//api.hackthedrive.com/vehicles/" + car1 + "/location/"
+		    })
+		    .done(function(data) {
+		    	if(currentLong !== "" && currentLat !== data.lat || currentLong !== data.lon)
+		  			refreshTime = 5000;
+		  		else 
+		  			refreshTime = 1000 * 20;
+		  		console.log(refreshTime);
+		    })
+		    .fail(function failureCallback (argument) {
+		      console.log('failureCallback');
+		    });
+
 		    $.ajax({
 		      url:"http://api.hackthedrive.com/vehicles/" + car1 + "/battery/"
 		    })
@@ -138,7 +200,6 @@
 		      	if(fields[i].name === "battery"){
 		      		fields[i].value = data.remainingPercent;
 		      		fields[i].chargingStatus = data.chargingStatus;
-		      		console.log(fields[i].chargingStatus);
 		      	}
 		      	if(fields[i].name === "dist remain (battery)"){
 		      		fields[i].value = data.remainingRangeMi;
@@ -175,7 +236,7 @@
 		    //must reenter d3 related data
 		    function updateD3(){
 		    	var animateTime = 1000;
-		    	console.log("updateD3");
+		    	console.log("Real Time Chart");
 
 			    var path = svg.selectAll("path")
 			      .data(fields.filter(function(d) { return d.value; }));
@@ -216,7 +277,7 @@
 		var divH = parseInt( d3.select("#historyChart").style("height") );
 	  var divW = parseInt( d3.select("#historyChart").style("width") );
 		
-		var margin = {top: 20, right: 10, bottom: 40, left: 10};
+		var margin = {top: 30, right: 10, bottom: 50, left: 10};
 		var w = divW - margin.left - margin.right;
 			h = divH - margin.top - margin.bottom;
 
@@ -291,7 +352,7 @@
 				height: function(d){ return yScale(d.distance); },
 				fill: function(d) { return color(d.distance); }
 			})
-			.on("mouseenter", function(d){
+			.on("mouseover", function(d){
 				var formatTime = d3.time.format("%e %a, %H:%M");
 				div.transition()        
           .duration(200)      
@@ -394,7 +455,6 @@
 			  		var formatedDate = formatTime(date).toLowerCase();
 			  		if(formatedDate === currentDate){
 			  			tempSum+=data[i].duration;
-			  			console.log(most + " : " + mostOnDay + " > " + tempSum + " : " + data[i].duration);
 			  			if(tempSum > most){
 			  				most = tempSum;
 			  				mostOnDay = formatedDate;
