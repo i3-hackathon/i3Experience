@@ -12,12 +12,15 @@
 		<div id="header">
 			<h1>BMW Car Visualisation</h1>
 		</div>
-		<div id="currentStatusChart"></div>
+		<div>
+			<div id="currentStatusChart"></div>
+			<div id="historyChart"></div>
+		</div>
 	</body>
 
 	<!-- currentStatusChart -->
 	<script type="text/javascript">
-		var car1 = 'WBY1Z4C53EV273080';
+		var car1 = 'WBY1Z4C58EV275200';
 		var divH = parseInt( d3.select("#currentStatusChart").style("height") );
 	  var divW = parseInt( d3.select("#currentStatusChart").style("width") );
 		
@@ -27,8 +30,8 @@
 			smallestDim = Math.min(h, w);
 
 		var fields = [
-			{name: "battery", value: 1, size: 100, units: "%", order: 0},
-			{name: "battery dist", value: 1, size: 81, units: "mi", order: 1}//,
+			{name: "battery", value: 1, size: 100, units: "%", order: 1},
+			{name: "battery dist", value: 1, size: 81, units: "mi", order: 0}//,
 			//{name: "fuel", value: .1, size: 1.98, units: "gallons", order: 2},
 			//{name: "fuel_distance", value: 1, size: 58, units: "miles", order: 3}
 		];
@@ -50,32 +53,31 @@
 	    .outerRadius(function(d) { return outerRadiusInit - d.order * arcWidth ; })
 	    .startAngle(Math.PI)
 	    .endAngle(function(d,i) { 
-	      return Math.PI - (d.value / d.size) * Math.PI;
+	      return (d.value / d.size) * Math.PI + Math.PI;
 	    });
 
-		for(var i = 0; i < fields.length; i++)
-			fields[i].previous = fields[i].value;
+		//for(var i = 0; i < fields.length; i++)
+			//fields[i].previous = fields[i].value;
 
 		var path = svg.selectAll("path")
 		  .data(fields.filter(function(d) { return d.value; }))
-
 		path.enter().append("svg:path")
 	    .attr("transform", function(d, i) { 
-	      return "translate(" + (smallestDim/2) + ",0)"; 
+	      return "translate(" + smallestDim/2 + ",0)"; 
 	    })
 	    .attr("d", arc);
 
+	  //text adding
 	  var text = svg.selectAll("text")
 	  	.data(fields)
 	  	.enter()
 	  	.append("text")
-
 	  text.text(function(d){
 	  		return d.name + " " + d.value + " " + d.units;
 	  	})
 	  	.attr("class", "info")
 	  	.attr("transform", function(d, i){
-	  		return "translate(10," + (150 + i*30) + ")"
+	  		return "translate(" + (smallestDim/2 + 10) + "," + (150 + i*30) + ")"
 	  	});
 
 
@@ -107,11 +109,12 @@
 	    function updateD3(){
 	    	var animateTime = 1000;
 	    	console.log("updateD3");
+
 		    var path = svg.selectAll("path")
 		      .data(fields.filter(function(d) { return d.value; }));
 
 				path.enter().append("svg:path")
-		      .attr("transform", function(d, i) { return "translate(" + h/2 + ",0)"; })
+		      .attr("transform", function(d, i) { return "translate(" + smallestDim/2 + ",0)"; })
 		    .transition()
 		      .ease("linear")
 		      .duration(animateTime)
@@ -124,11 +127,11 @@
 
 		    svg.selectAll("text") //bottom
 					.data(fields)
-					.transition()
-					.duration(animateTime)
-					.ease("linear")
+					.text(function(d){
+			  		return d.name + " " + d.value + " " + d.units;
+			  	})
 					.attr("transform", function(d, i){
-			  		return "translate(10," + (150 + i*30) + ")"
+			  		return "translate(" + (smallestDim/2 + 10) + "," + (150 + i*30) + ")"
 			  	});
 		  }
 		}
@@ -140,6 +143,124 @@
 		    return arc(i(t));
 		  };
 		}
+	</script>
+
+	<!-- historyChart -->
+	<script type="text/javascript">
+		var divH = parseInt( d3.select("#historyChart").style("height") );
+	  var divW = parseInt( d3.select("#historyChart").style("width") );
+		
+		var margin = {top: 10, right: 10, bottom: 20, left: 10};
+		var w = divW - margin.left - margin.right;
+			h = divH - margin.top - margin.bottom;
+
+		//rects, data is trip distance
+		var data = [
+			{ date: "2015-01-04T00:18:11-0500", distance: 10, duration: 5 },
+			{ date: "2015-01-04T02:18:11-0500", distance: 13, duration: 10 },
+			{ date: "2015-01-05T10:18:11-0500", distance: 19, duration: 11 },
+			{ date: "2015-01-05T13:18:11-0500", distance: 21, duration: 20 },
+			{ date: "2015-01-06T10:18:11-0500", distance: 25, duration: 5 },
+			{ date: "2015-01-06T12:18:11-0500", distance: 22, duration: 5 },
+			{ date: "2015-01-06T19:18:11-0500", distance: 18, duration: 12 },
+			{ date: "2015-01-07T02:18:11-0500", distance: 15, duration: 15 },
+			{ date: "2015-01-07T10:18:11-0500", distance: 11, duration: 5 },
+			{ date: "2015-01-07T12:18:11-0500", distance: 12, duration: 6 },
+			{ date: "2015-01-07T15:18:11-0500", distance: 15, duration: 5 },
+			{ date: "2015-01-08T08:18:11-0500", distance: 16, duration: 7 },
+			{ date: "2015-01-08T15:18:11-0500", distance: 18, duration: 20 },
+			{ date: "2015-01-08T18:18:11-0500", distance: 23, duration: 23 },
+			{ date: "2015-01-08T22:18:11-0500", distance: 25, duration: 25 },
+			{ date: "2015-01-09T15:18:11-0500", distance: 10, duration: 5 },
+			{ date: "2015-01-09T17:18:11-0500", distance: 13, duration: 7 },
+			{ date: "2015-01-09T19:18:11-0500", distance: 16, duration: 6 },
+			{ date: "2015-01-10T20:18:11-0500", distance: 5, duration: 5 },	
+			{ date: "2015-01-10T22:18:11-0500", distance: 2, duration: 2 }
+		];
+
+		var minDate = new Date(Date.parse(d3.min(data, function(d){ return d.date})));
+		var maxDate = new Date(Date.parse(d3.max(data, function(d){ return d.date})));
+
+		var xTimeScale = d3.time.scale()
+			.domain([minDate, maxDate])
+			.range([0, w]);
+		var xScale = d3.svg.axis()
+    	.scale(xTimeScale)
+    	.orient('bottom')
+	    .ticks(d3.time.days)
+	    .tickFormat(d3.time.format('%d %a %H:%M'));
+
+		var yScale = d3.scale.linear()
+			.domain([0, d3.max(data, function(d){ return d.distance; })])
+			.range([0, h]);
+
+		var svg2 = d3.select("#historyChart").append("svg")
+			.attr({
+				width: w + margin.left + margin.right,
+				height: h + margin.top + margin.bottom
+			})
+			.append("g")
+  		.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  	function color(d){ return "rgb(150," + d * 10 + "," + d * 15 + ")"; };
+
+  	//TOOLTIP
+		var div = d3.select("body").append("div")   
+	    .attr("class", "tooltip")               
+	    .style("opacity", 0);
+
+		svg2.selectAll("rect")
+			.data(data)
+			.enter()
+			.append("rect")
+			.attr({
+				x: function(d, i) { return xTimeScale(new Date(Date.parse(d.date))); },
+				y: function(d) { return h - yScale(d.distance); },
+				width: function(d) { return d.duration; },
+				height: function(d){ return yScale(d.distance); },
+				fill: function(d) { return color(d.distance); }
+			})
+			.on("mouseenter", function(d){
+				var formatTime = d3.time.format("%e %a, %H:%M");
+				div.transition()        
+          .duration(200)      
+          .style("opacity", .95);      
+        div.html("Distance: " + d.distance + "<br/>" 
+        	+ "Duration: " + d.duration + "<br>"
+        	+ "Date: " + formatTime(new Date(Date.parse(d.date))))//parse date  
+          .style("left", (d3.event.pageX) + "px")     
+          .style("top", (d3.event.pageY - 28) + "px");    
+      })    
+			.on("mouseout", function(d) {       
+        div.transition()        
+          .duration(500)      
+          .style("opacity", 0);   
+      });
+
+			svg2.selectAll("text.barLabels") // top
+				.data(data)
+				.enter()
+				.append("text")
+				.text(function(d) { return d.distance; })
+				.attr({
+					"class": "barLabels",
+					x: function(d,i) { return xTimeScale(new Date(Date.parse(d.date))) + d.duration/2 - (this.getBBox().width / 2)},
+					y: function(d) { return h - yScale(d.distance) + 14; },
+				});
+
+			svg2.append("text")
+				.text("Distance Per Trip (mi)")
+				.attr("x", w/2)
+				.attr("y", "12px")
+				.attr("text-anchor", "middle")
+				.attr("font-size", "30px");
+
+			svg2.append('g')
+		    .attr('class', 'axis')
+		    .attr('transform', 'translate(0, ' + (h - 5) + ')')
+		    .call(xScale)
+
+	//rect end
 	</script>
 
 </html>
