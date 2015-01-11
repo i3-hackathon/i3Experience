@@ -1,0 +1,777 @@
+<!--
+	Note need to press buttons several times before it works
+	What other features should add?
+
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>BMW Hackathon</title>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+		<script src="d3/d3.js"></script>
+		<script type="text/javascript" src="http://www.parsecdn.com/js/parse-1.3.3.min.js"></script>
+		<script src="http://js.api.here.com/v3/3.0/mapsjs-core.js"
+		type="text/javascript" charset="utf-8"></script>
+		<script src="http://js.api.here.com/v3/3.0/mapsjs-service.js"
+		type="text/javascript" charset="utf-8"></script>
+
+		<link rel="stylesheet" href="style.css">
+
+		<!-- display map -->
+		<script type="text/javascript">
+
+			console.log("display map");
+			Parse.initialize("mPDPR9YJKfB7msvmYZ5SNzmgpmhmOXVzN80d4DYp", "ZgNbY2SzGUWLgdAOOhLHMQz3MWMyF5HwNc7bxfYA");
+
+			var baseURL = "http://api.hackthedrive.com/vehicles/";
+			var vin = "WBY1Z4C58EV275200";
+
+			var LocationObject = Parse.Object.extend("LocationObject");
+			var locationObject = new LocationObject();
+
+			function pollAPI () {
+				makeAjaxCall("location", locationObject);
+
+				function makeAjaxCall (objStr, obj) {
+					$.ajax({
+						url: baseURL + vin + "/" + objStr + "/",
+						context: document.body
+					}).done(function(data) {
+						saveToParse(obj, data);
+					});
+				}
+
+				var saveToParse = function (object, data) {
+					var query = new Parse.Query(LocationObject);
+					query.equalTo("timestamp", data["timestamp"]);
+					query.first({
+						success: function (o) {
+							if (!o) {
+								save(o);
+							}
+						},
+						error: function (error) {
+							alert("Error: " + error.code + " " + error.message);
+						}
+					});
+
+					function save (o) {
+						console.log("dupe!");
+						o.save(data, {
+							success: function(object) {
+								$(".success").show();
+							},
+							error: function(model, error) {
+								$(".error").show();
+							}
+						});
+					}
+				}
+				setTimeout(pollAPI, 5*  60*1000);
+			};
+
+			pollAPI();
+
+			window.onload = function () {
+				var platform = new H.service.Platform({
+					'app_id': 'p0UttayNABX2alNLtVJu',
+					'app_code': 'gdOz5Jx1i17mq5dn3w6eow'
+				});
+
+				// Obtain the default map types from the platform object
+				var maptypes = platform.createDefaultLayers();
+
+				var query = new Parse.Query(LocationObject);
+				query.first({
+					success: function (o) {
+						if (o) {
+							console.log("success");
+
+							// Instantiate (and display) a map object:
+							var map = new H.Map(
+								document.getElementById('mapContainer'),
+								maptypes.normal.map,
+							{
+								zoom: 15,
+								center: new H.geo.Point(o.get("lat"), o.get("lon"))
+							});
+
+							map.setBaseLayer(maptypes.satellite.traffic);
+
+							//var markerIcon = new H.map.Icon('http://someurl.com/icon.png');
+							var marker = new H.map.Marker({ lat: o.get("lat"), lng: o.get("lon")}/*, {
+								icon: markerIcon
+							}*/);
+							map.addObject(marker);
+
+						}
+					},
+					error: function (error) {
+						alert("Error: " + error.code + " " + error.message);
+					}
+				});
+			};
+
+		</script>
+  </head>
+
+	<body>
+		<div id="header">
+			<p>i3 Experience</p>
+		</div>
+		<div>
+			<div class="topLayer">
+				<div id="currentStatusChart"></div>
+				<div id="middle"></div>
+				<div id="currentStatusChart2"></div>
+			</div>
+
+			<div id="historyChart">
+				<ul class="nav">
+					<li id="averageDistance"></li>
+					<li id="averageDuration"></li>
+					<li id="mostMiles"></li>
+					<li id="mostTime"></li>
+					<div id="right">
+						<li id="btnWeekDay">Week Day</li>
+						<li id="btnWeekend">Weekend</li>
+						<li id="btnWholeWeek">Whole Week</li>
+					</div>
+				</ul>
+			</div>
+		</div>
+
+		<style type="text/css">
+		#mapContainer { height: 400px; width: 100%; margin: 0; padding: 0;}
+		</style>
+
+		<div id="mapContainer"></div>
+
+	</body>
+
+	<!-- currentStatusChart -->
+	<script type="text/javascript">
+		var car1 = 'WBY1Z4C58EV275200';
+		var divH = parseInt( d3.select("#currentStatusChart").style("height") );
+	  var divW = parseInt( d3.select("#currentStatusChart").style("width") );
+
+		var margin = {top: 10, right: 10, bottom: 10, left: 10};
+		var w = divW - margin.left - margin.right;
+			h = divH - margin.top - margin.bottom;
+			smallestDim = Math.min(h, w);
+
+		var fields = [
+			{side: "left", name: "battery", value: 5, size: 100, units: "%", order: 1, chargingStatus: "unknown"},
+			{side: "left", name: "dist remain (battery)", value: 5, size: 86, units: "mi", order: 0},
+			{side: "right", name: "fuel", value: .1, size: 1.98, units: "gallons", order: 1},
+			{side: "right", name: "dist remain", value: 2, size: 81, units: "mi", order: 0}
+		];
+
+		/*var vehicleDescription = {
+			color: "",
+			colorAccent: "",
+			countryOfSale: "",
+			make: "",
+			hasRangeExtender: "",
+			year: "",
+			model: "",
+			vin: ""
+		};*/
+
+
+		var svg = d3.select("#currentStatusChart").append("svg:svg")
+	    .attr("width", w + margin.left + margin.right)
+	    .attr("height", h + margin.top + margin.bottom)
+	  .append("svg:g")
+	    .attr("transform", "translate(" + margin.left + "," +(margin.top + smallestDim/2)+ ")");
+
+		//arc start
+		var outerRadiusInit = smallestDim / 2;
+		var arcWidth = 35;
+		var innerRadiusInit = outerRadiusInit - arcWidth;
+
+		var arc = d3.svg.arc()
+	    .innerRadius(function(d) { return innerRadiusInit - d.order * arcWidth ; })
+	    .outerRadius(function(d) { return outerRadiusInit - d.order * arcWidth ; })
+	    .startAngle(Math.PI)
+	    .endAngle(function(d,i) {
+	    	if(d.side === "left")
+	    		return (d.value / d.size) * Math.PI + Math.PI;
+	    	else return Math.PI - (d.value / d.size) * Math.PI;
+	    });
+
+		for(var i = 0; i < fields.length; i++)
+			fields[i].previous = fields[i].value;
+
+		var path = svg.selectAll("path")
+		  .data(fields.filter(function(d) { return d.value; }))
+
+		path.enter().append("svg:path")
+			.attr("fill", function(d){
+				if(d.side === "left")
+					return "rgba(122,181,236,1)";
+				else return "orange";
+			})
+	    .attr("transform", function(d, i) {
+	    	if(d.side === "left")
+	    		return "translate(" + smallestDim/2 + ",0)";
+	    	else return "translate(" + (w - smallestDim/2) + ",0)";
+	    })
+	    .attr("d", arc);
+
+
+	  //text adding
+	  var text = svg.selectAll("text.info")
+	  	.data(fields)
+	  	.enter()
+	  	.append("text")
+	  text.text(function(d){
+	  		return d.name + " " + d.value + " " + d.units;
+	  	})
+	  	.attr("class", "info")
+	  	.attr("transform", function(d, i){
+	  		if(d.side === "left")
+    			return "translate(" + (smallestDim/2 + 10) + "," + (150 + Math.abs(d.order-1)*30) + ")";
+    		else return "translate(" + (w - smallestDim) + "," + (150 +Math.abs(d.order-1)*30) + ")";
+	  	});
+
+
+	  	svg.append("text")
+				.attr("class", "chargingStatus")
+				.attr("text-anchor", "middle")
+				.attr("transform","translate(" + smallestDim / 2 + ",0)")
+				.text("Charging Status:" + fields[0].chargingStatus);
+
+
+			/*getVehicleDescription();
+			function getVehicleDescription(){
+				$.ajax({
+		      url:"http://api.hackthedrive.com/vehicles/" + car1
+		    })
+		    .done(function(data) {
+					vehicleDescription.color = data.color;
+					vehicleDescription.colorAccent = data.colorAccent;
+					vehicleDescription.countryOfSale = data.country;
+					vehicleDescription.make = data.make;
+					vehicleDescription.hasRangeExtender = data.hasRangeExtender;
+					vehicleDescription.year = data.year;
+					vehicleDescription.model = data.model;
+					vehicleDescription.vin = data.vin;
+					console.log(vehicleDescription);
+
+					//should fix if want to impliment, + is necessary to impliment?
+					svg.append("text")
+						.data(vehicleDescription)
+						.attr("text-anchor", "middle")
+						.attr("class", "center")
+						.attr("transform", function(d, i){
+							return "translate(" + w/2 + "," + (100 + i*10) + ")";
+							console.log("transition");
+						})
+						.text(function(d){ return vehicleDescription[d] });
+		    })
+		    .fail(function failureCallback (argument) {
+		      console.log('failureCallback');
+		    });
+			}*/
+
+
+			//getting information
+			var currentLat = "";
+		  var currentLong = "";
+			var refreshTime = 1000 * 20;
+		  updateCarStatus();
+		  setInterval(updateCarStatus, refreshTime);
+
+		  function updateCarStatus(){
+		  	$.ajax({
+		      url:"http//api.hackthedrive.com/vehicles/" + car1 + "/location/"
+		    })
+		    .done(function(data) {
+		    	if(currentLong !== "" && currentLat !== data.lat || currentLong !== data.lon)
+		  			refreshTime = 5000;
+		  		else
+		  			refreshTime = 1000 * 20;
+		  		console.log(refreshTime);
+		    })
+		    .fail(function failureCallback (argument) {
+		      console.log('failureCallback');
+		    });
+
+		    $.ajax({
+		      url:"http://api.hackthedrive.com/vehicles/" + car1 + "/battery/"
+		    })
+		    .done(function(data) {
+		    	fields[0].previous = fields[0].value;
+		    	fields[1].previous = fields[1].value;
+					for(var i = 0; i < fields.length; i++){
+		      	if(fields[i].name === "battery"){
+		      		fields[i].value = data.remainingPercent;
+		      		fields[i].chargingStatus = data.chargingStatus;
+		      	}
+		      	if(fields[i].name === "dist remain (battery)"){
+		      		fields[i].value = data.remainingRangeMi;
+		      	}
+		      };
+		      updateD3();
+		    })
+		    .fail(function failureCallback (argument) {
+		      console.log('failureCallback');
+		    });
+
+		    //ajax for fuel
+		    $.ajax({
+		      url:"http://api.hackthedrive.com/vehicles/" + car1 + "/fuel/"
+		    })
+		    .done(function(data) {
+		    	fields[2].previous = fields[2].value;
+		    	fields[3].previous = fields[3].value;
+					for(var i = 0; i < fields.length; i++){
+		      	if(fields[i].name === "fuel"){
+		      		fields[i].value = data.remainingGallons;
+		      	}
+		      	if(fields[i].name === "dist remain"){
+		      		fields[i].value = data.remainingRangeMi;
+		      	}
+		      };
+		      updateD3();
+		    })
+		    .fail(function failureCallback (argument) {
+		      console.log('failureCallback');
+		    });
+
+
+		    //must reenter d3 related data
+		    function updateD3(){
+		    	var animateTime = 1000;
+		    	console.log("Real Time Chart");
+
+			    var path = svg.selectAll("path")
+			      .data(fields.filter(function(d) { return d.value; }));
+
+			    d3.select('.chargingStatus').html("Charging Status:" + fields[0].chargingStatus);
+
+					path.enter().append("svg:path")
+			      .attr("transform", function(d, i) { return "translate(" + smallestDim/2 + ",0)"; })
+			    .transition()
+			      .ease("linear")
+			      .duration(animateTime)
+			      .attrTween("d", arcTween);
+
+			    path.transition()
+			      .ease("linear")
+			      .duration(animateTime)
+			      .attrTween("d", arcTween);
+
+			    svg.selectAll("text") //bottom
+						.data(fields)
+						.text(function(d){
+				  		return d.name + " " + d.value + " " + d.units;
+				  	});
+			  }
+			}
+
+		  //arc end
+		  function arcTween(b) {
+			  var i = d3.interpolate({value: b.previous}, b);
+			  return function(t) {
+			    return arc(i(t));
+			  };
+			}
+	</script>
+
+	<!-- historyChart -->
+	<script type="text/javascript">
+
+		Parse.initialize("mPDPR9YJKfB7msvmYZ5SNzmgpmhmOXVzN80d4DYp", "ZgNbY2SzGUWLgdAOOhLHMQz3MWMyF5HwNc7bxfYA");
+
+		var baseURL = "http://api.hackthedrive.com/vehicles/";
+		var vin = "WBY1Z4C58EV275200";
+
+		var LastTripObject = Parse.Object.extend("LastTripObject");
+		var lastTripObject = new LastTripObject();
+
+		function pollAPI () {
+			makeAjaxCall("lastTrip", lastTripObject);
+
+			function makeAjaxCall (objStr, obj) {
+				$.ajax({
+					url: baseURL + vin + "/" + objStr + "/",
+					context: document.body
+				}).done(function(data) {
+					saveToParse(obj, data);
+				});
+			}
+
+			var saveToParse = function (object, data) {
+				var query = new Parse.Query(LastTripObject);
+				query.equalTo("tripDate", data["tripDate"]);
+				query.first({
+					success: function (o) {
+						if (!o) {
+							save(o);
+						}
+					},
+					error: function (error) {
+						alert("Error: " + error.code + " " + error.message);
+					}
+				});
+
+				function save (o) {
+					console.log("dupe!");
+					o.save(data, {
+						success: function(object) {
+							$(".success").show();
+						},
+						error: function(model, error) {
+							$(".error").show();
+						}
+					});
+				}
+			}
+			setTimeout(pollAPI, 5*60*1000);
+		};
+
+		pollAPI();
+
+		var divH = parseInt( d3.select("#historyChart").style("height") );
+	  var divW = parseInt( d3.select("#historyChart").style("width") );
+
+		var margin = {top: 30, right: 10, bottom: 50, left: 10};
+		var w = divW - margin.left - margin.right;
+			h = divH - margin.top - margin.bottom;
+
+		var query = new Parse.Query(LastTripObject);
+
+		query.limit(60);
+		query.find({
+			success: function(results) {
+				//console.log("Successfully retrieved " + results.length + " results.");
+				// Do something with the returned Parse.Object values
+				for (var i = 0; i < results.length; i++) {
+					var object = results[i];
+					showData(object);
+				}
+			},
+			error: function(error) {
+				alert("Error: " + error.code + " " + error.message);
+			}
+		});
+
+		var ORIGINAL_DATA = []
+		function showData(data) {
+			var item = {};
+			for (var k in data.attributes) {
+				var val = data.get(k);
+				//globalData[k] = val;
+				//if (obj === LastTripObject) {
+					//if (k === "distanceTotalKm") lastTripTotalKm.push(val);
+					if (k === "distanceTotalMi") item["distance"] = val;//lastTripTotalMi.push(val);
+					else if (k === "durationMinutes") item["duration"] = val;//lastTripDuration.push(val);
+					else if (k === "tripDate") item["date"] = val;//lastTripDate.push(val);
+				//}
+			}
+			ORIGINAL_DATA.push(item);
+			var data = ORIGINAL_DATA.slice()
+
+			var minDate = new Date(Date.parse(d3.min(data, function(d){ return d.date})));
+			var maxDate = new Date(Date.parse(d3.max(data, function(d){ return d.date})));
+
+			var xTimeScale = d3.time.scale()
+			.domain([minDate, maxDate])
+			.range([0, w]);
+			var xAxis = d3.svg.axis()
+			.scale(xTimeScale)
+			.innerTickSize([-h + 25])
+			.orient('bottom')
+			.ticks(5)
+			//.ticks(d3.time.days)
+			.tickFormat(d3.time.format('%d %a %H:%M'));
+
+			var yScale = d3.scale.linear()
+			.domain([0, d3.max(data, function(d){ return d.distance; })])
+			.range([0, h]);
+
+			var svg2 = d3.select("#historyChart").append("svg")
+			.attr({
+				width: w + margin.left + margin.right,
+				height: h + margin.top + margin.bottom
+			})
+			.append("g")
+			.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+			//color function
+			function color(d){ return "rgb(150," + d * 10 + "," + d * 15 + ")"; };
+
+			//TOOLTIP
+			var div = d3.select("body").append("div")
+			.attr("class", "tooltip")
+			.style("opacity", 0);
+
+			//Adding Rects
+			svg2.selectAll("rect")
+			.data(data)
+			.enter()
+			.append("rect")
+			.attr({
+				x: function(d, i) { return xTimeScale(new Date(Date.parse(d.date))); },
+				y: function(d) { return h - yScale(d.distance); },
+				width: function(d) { return d.duration; },
+				height: function(d){ return yScale(d.distance); },
+				fill: function(d) { return color(d.distance); }
+			})
+			.on("mouseover", function(d){
+				var formatTime = d3.time.format("%e %a, %H:%M");
+				div.transition()
+				.duration(200)
+				.style("opacity", .95);
+				div.html("Distance: " + d.distance + " mi<br/>"
+				+ "Duration: " + d.duration + " min<br>"
+				+ "Date: " + formatTime(new Date(Date.parse(d.date))))//parse date
+				.style("left", (d3.event.pageX) + "px")
+				.style("top", (d3.event.pageY - 28) + "px");
+			})
+			.on("mouseout", function(d) {
+				div.transition()
+				.duration(500)
+				.style("opacity", 0);
+			});
+
+			//mile labels for each bar
+			svg2.selectAll("text.barLabels") // top
+			.data(data)
+			.enter()
+			.append("text")
+			.text(function(d) { return d.distance; })
+			.attr({
+				"class": "barLabels",
+				x: function(d,i) { return xTimeScale(new Date(Date.parse(d.date))) + d.duration/2 - (this.getBBox().width / 2)},
+				y: function(d) { return h - yScale(d.distance) - 2; },
+			});
+
+			//chart title
+			svg2.append("text")
+			.text("Distance Per Trip (mi)")
+			.attr("x", w/2)
+			.attr("y", "12px")
+			.attr("text-anchor", "middle")
+			.attr("fill", "white")
+			.attr("font-size", "30px");
+
+			//x axis
+			svg2.append('g')
+			.attr('class', 'axis')
+			.attr('transform', 'translate(0, ' + (h) + ')')
+			.call(xAxis)
+
+			upDateInsights();
+
+
+			function upDateInsights(){
+				d3.select("#averageDistance").html("Average Distance: " + averageDistance());
+				d3.select("#averageDuration").html("Average Duration: " + averageDuration());
+				d3.select("#mostMiles").html("Most Miles: " + mostMiles());
+				d3.select("#mostTime").html("Most Time: " + mostTime());
+
+
+				//data calculating function
+				function averageDistance(){
+					var total = 0;
+					for(i = 0; i < data.length; i++){
+						total += data[i].distance;
+					}
+					return total / data.length + " mi" ;
+				}
+				function averageDuration(){
+					var total = 0;
+					for(i = 0; i < data.length; i++){
+						total += data[i].duration;
+					}
+					return total / data.length + " min";
+				}
+				function mostMiles(){
+					var most = 0;
+					var currentDate = "sat";
+					var tempSum = 0;
+					var mostOnDay = "sat";
+					for(var i = 0; i < data.length; i++){
+						var date = new Date(Date.parse(data[i].date))
+						var formatTime = d3.time.format("%a");
+						var formatedDate = formatTime(date).toLowerCase();
+						if(formatedDate === currentDate){
+							tempSum+=data[i].distance;
+							if(tempSum > most){
+								most = tempSum;
+								mostOnDay = formatedDate;
+							}
+						}
+						if(formatedDate !== currentDate){
+							tempSum = 0;
+							currentDate = formatedDate;
+						}
+					}
+					return most + " mi on " + mostOnDay;
+				}
+				function mostTime(){
+					var most = 0;
+					var currentDate = "sat";
+					var tempSum = 0;
+					var mostOnDay = "sat";
+					for(var i = 0; i < data.length; i++){
+						var date = new Date(Date.parse(data[i].date))
+						var formatTime = d3.time.format("%a");
+						var formatedDate = formatTime(date).toLowerCase();
+						if(formatedDate === currentDate){
+							tempSum+=data[i].duration;
+							if(tempSum > most){
+								most = tempSum;
+								mostOnDay = formatedDate;
+							}
+						}
+						if(formatedDate !== currentDate){
+							tempSum = 0;
+							currentDate = formatedDate;
+						}
+					}
+					return most + " min on " + mostOnDay;
+				}
+			}
+
+			//btns to change state
+			d3.select("#btnWeekDay").on("click", function(){
+				var done = false;
+
+				var i = data.length;
+				while(i--){
+					var date = new Date(Date.parse(data[i].date))
+					var formatTime = d3.time.format("%a");
+					var formatedDate = formatTime(date).toLowerCase();
+
+					if(formatedDate === "sun" || formatedDate === "sat"){
+						data.splice(i,1);
+					}
+					if( i === 0)
+					done = true;
+				}
+
+				if(done){
+					upDateInsights()
+				}
+				reArrange();
+			});
+			d3.select("#btnWeekend").on("click", function(){
+				var done = false;
+
+				var i = data.length;
+				while(i--){
+					var date = new Date(Date.parse(data[i].date))
+					var formatTime = d3.time.format("%a");
+					var formatedDate = formatTime(date).toLowerCase();
+
+					if(formatedDate !== "sun" && formatedDate !== "sat"){
+						data.splice(i,1);
+					}
+
+					if( i === 0)
+					done = true;
+				}
+
+				if(done){
+					upDateInsights()
+				}
+				reArrange();
+			});
+			d3.select("#btnWholeWeek").on("click", function(){
+				//reload page instead of fix data
+				javascript:history.go(0);
+
+				/*data = ORIGINAL_DATA.slice();
+				d3.select("#averageDistance").html("Average Distance: " + averageDistance());
+				d3.select("#averageDuration").html("Average Duration: " + averageDuration());
+				//do a brute reset of everything?
+				reArrange();*/
+			})
+
+
+			//rearranging History Chart
+			function reArrange(){
+				//rescaling
+				var minDate = new Date(Date.parse(d3.min(data, function(d){ return d.date})));
+				var maxDate = new Date(Date.parse(d3.max(data, function(d){ return d.date})));
+
+				xTimeScale.domain([minDate, maxDate]);
+				//yScale.domain([0, d3.max(data, function(d){ return d.distance; })]);
+
+				//moving rects
+				var bars = svg2.selectAll("rect")
+				.data(data);
+				bars.transition()
+				.duration(1000)
+				.ease("linear")
+				.attr({
+					x: function(d, i) { return xTimeScale(new Date(Date.parse(d.date))); },
+					y: function(d) { return h - yScale(d.distance); },
+					width: function(d) { return d.duration; },
+					height: function(d){ return yScale(d.distance); },
+					fill: function(d) { return color(d.distance); }
+				});
+				bars.exit()
+				.remove();
+
+
+				//updating labels for each bar
+				var text = svg2.selectAll("text.barLabels") // top
+				.data(data);
+				text.transition()
+				.duration(1000)
+				.ease("linear")
+				.text(function(d) { return d.distance; })
+				.attr({
+					"class": "barLabels",
+					x: function(d,i) { return xTimeScale(new Date(Date.parse(d.date))) + d.duration/2 - (this.getBBox().width / 2)},
+					y: function(d) { return h - yScale(d.distance) -2; },
+				});
+				text.exit()
+				.remove();
+
+				//x axis
+				svg2.selectAll('g')
+				.transition()
+				.duration(1000)
+				.call(xAxis);
+			}
+
+		}
+
+		/*
+		//rects, data is trip distance
+		var ORIGINAL_DATA = [
+			{ date: "2015-01-04T00:18:11-0500", distance: 10, duration: 5 },
+			{ date: "2015-01-04T02:18:11-0500", distance: 13, duration: 10 },
+			{ date: "2015-01-05T10:18:11-0500", distance: 19, duration: 11 },
+			{ date: "2015-01-05T13:18:11-0500", distance: 21, duration: 20 },
+			{ date: "2015-01-06T10:18:11-0500", distance: 25, duration: 5 },
+			{ date: "2015-01-06T12:18:11-0500", distance: 22, duration: 5 },
+			{ date: "2015-01-06T19:18:11-0500", distance: 18, duration: 12 },
+			{ date: "2015-01-07T02:18:11-0500", distance: 15, duration: 15 },
+			{ date: "2015-01-07T10:18:11-0500", distance: 11, duration: 5 },
+			{ date: "2015-01-07T12:18:11-0500", distance: 12, duration: 6 },
+			{ date: "2015-01-07T15:18:11-0500", distance: 15, duration: 5 },
+			{ date: "2015-01-08T08:18:11-0500", distance: 16, duration: 7 },
+			{ date: "2015-01-08T15:18:11-0500", distance: 18, duration: 20 },
+			{ date: "2015-01-08T18:18:11-0500", distance: 23, duration: 23 },
+			{ date: "2015-01-08T22:18:11-0500", distance: 25, duration: 25 },
+			{ date: "2015-01-09T15:18:11-0500", distance: 10, duration: 5 },
+			{ date: "2015-01-09T17:18:11-0500", distance: 13, duration: 7 },
+			{ date: "2015-01-09T19:18:11-0500", distance: 16, duration: 6 },
+			{ date: "2015-01-10T20:18:11-0500", distance: 5, duration: 5 },
+			{ date: "2015-01-10T22:18:11-0500", distance: 2, duration: 2 }
+		];
+		*/
+
+
+	</script>
+
+</html>
