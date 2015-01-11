@@ -369,7 +369,6 @@
 			    path.transition()
 			    	.attr("fill", function(d){
 			      	if(d.side === "left"){
-			      		console.log("inside");//not getting here?? Why
 								if(d.value / d.size > .2)
 									return "rgba(122,181,236,1)";
 								else return "red";
@@ -523,6 +522,7 @@
 			svg2.append('g')
 		    .attr('class', 'axis')
 		    .attr('transform', 'translate(0, ' + (h) + ')')
+		    .attr("fill", "white")
 		    .call(xAxis)
 
 			upDateInsights();
