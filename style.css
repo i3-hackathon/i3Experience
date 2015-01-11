@@ -1,21 +1,24 @@
 /*body{
 	height: 200px;
-	background-color: #0088ce;
+	background-color: aqua;
+	-webkit-filter: blur(4px) opacity(0.3);
 }
 #header h1{
 	text-align: center;
 	color: white;
 	font-size: 100px;
 }*/
-#currentStatusChart {
+
+.topLayer #currentStatusChart {
 	border: 2px dashed black;
 	height: 400px;
-	width: 400px;
+	width: 100%;
+	float:left;
+	align: center;
 }
 
-path {
+#currentStatusChart path {
   fill-rule: evenodd;
-  fill: teal;
   fill-opacity: .7;
   stroke: #666;
   stroke-width: 5.5px;
@@ -56,4 +59,25 @@ div.tooltip {
   border-radius: 8px;           
   pointer-events: none; 
   color: black;        
+}
+
+#historyChart .nav {
+	list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+#historyChart .nav #right{
+	float: right;
+}
+
+#historyChart .nav li {
+	display: inline;
+	padding-left: 8px;
+	padding-right: 8px;
+	background-color: maroon;
+	color: white;
+	border-radius: 5px;
+	margin-left: 5px;
+	margin-right: 5px;
 }
