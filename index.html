@@ -12,6 +12,109 @@
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
 		<script src="d3/d3.js"></script>
 		<link rel="stylesheet" href="style.css">
+
+		<!--for Map Related -->
+		<script type="text/javascript" src="http://www.parsecdn.com/js/parse-1.3.3.min.js"></script>
+		<script src="http://js.api.here.com/v3/3.0/mapsjs-core.js"
+		type="text/javascript" charset="utf-8"></script>
+		<script src="http://js.api.here.com/v3/3.0/mapsjs-service.js"
+		type="text/javascript" charset="utf-8"></script>
+
+		<!-- display map -->
+		<script type="text/javascript">
+
+			console.log("display map");
+			Parse.initialize("mPDPR9YJKfB7msvmYZ5SNzmgpmhmOXVzN80d4DYp", "ZgNbY2SzGUWLgdAOOhLHMQz3MWMyF5HwNc7bxfYA");
+
+			var baseURL = "http://api.hackthedrive.com/vehicles/";
+			var vin = "WBY1Z4C58EV275200";
+
+			var LocationObject = Parse.Object.extend("LocationObject");
+			var locationObject = new LocationObject();
+
+			function pollAPI () {
+				makeAjaxCall("location", locationObject);
+
+				function makeAjaxCall (objStr, obj) {
+					$.ajax({
+						url: baseURL + vin + "/" + objStr + "/",
+						context: document.body
+					}).done(function(data) {
+						saveToParse(obj, data);
+					});
+				}
+
+				var saveToParse = function (object, data) {
+					var query = new Parse.Query(LocationObject);
+					query.equalTo("timestamp", data["timestamp"]);
+					query.first({
+						success: function (o) {
+							if (!o) {
+								save(o);
+							}
+						},
+						error: function (error) {
+							alert("Error: " + error.code + " " + error.message);
+						}
+					});
+
+					function save (o) {
+						console.log("dupe!");
+						o.save(data, {
+							success: function(object) {
+								$(".success").show();
+							},
+							error: function(model, error) {
+								$(".error").show();
+							}
+						});
+					}
+				}
+				setTimeout(pollAPI, 5*  60*1000);
+			};
+
+			pollAPI();
+
+			window.onload = function () {
+				var platform = new H.service.Platform({
+					'app_id': 'p0UttayNABX2alNLtVJu',
+					'app_code': 'gdOz5Jx1i17mq5dn3w6eow'
+				});
+
+				// Obtain the default map types from the platform object
+				var maptypes = platform.createDefaultLayers();
+
+				var query = new Parse.Query(LocationObject);
+				query.first({
+					success: function (o) {
+						if (o) {
+							console.log("success");
+
+							// Instantiate (and display) a map object:
+							var map = new H.Map(
+								document.getElementById('mapContainer'),
+								maptypes.normal.map,
+							{
+								zoom: 15,
+								center: new H.geo.Point(o.get("lat"), o.get("lon"))
+							});
+
+							map.setBaseLayer(maptypes.satellite.traffic);
+
+							//var markerIcon = new H.map.Icon('http://someurl.com/icon.png');
+							var marker = new H.map.Marker({ lat: o.get("lat"), lng: o.get("lon")}/*, {
+								icon: markerIcon
+							}*/);
+							map.addObject(marker);
+
+						}
+					},
+					error: function (error) {
+						alert("Error: " + error.code + " " + error.message);
+					}
+				});
+			};
+		</script>
   </head>
 
 	<body>
@@ -38,6 +141,10 @@
 					</div>
 				</ul>
 			</div>
+
+			<!-- map -->
+			<div id="mapContainer"></div>
+
 		</div>
 	</body>
 

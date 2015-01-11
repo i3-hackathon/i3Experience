@@ -94,3 +94,11 @@ div.tooltip {
 	border-radius: 5px;
 	margin: 3px 3px 3px 3px;
 }
+
+#mapContainer { 
+	height: 400px;
+	width: 95%;
+	margin: 0 auto;
+	border-radius: 20px;
+	border: 2px solid #C0C0C0;
+}
